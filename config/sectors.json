@@ -1,0 +1,306 @@
+[
+ {
+  "id": "bank",
+  "name": "Ngân hàng",
+  "tickers": [
+   "VCB",
+   "BID",
+   "CTG",
+   "MBB",
+   "TCB",
+   "VPB",
+   "ACB",
+   "HDB",
+   "STB",
+   "VIB"
+  ]
+ },
+ {
+  "id": "bds",
+  "name": "Bất động sản",
+  "tickers": [
+   "VHM",
+   "VIC",
+   "NVL",
+   "KDH",
+   "NLG",
+   "DXG",
+   "PDR",
+   "HDG",
+   "KBC",
+   "SZC"
+  ]
+ },
+ {
+  "id": "chung-khoan",
+  "name": "Chứng khoán",
+  "tickers": [
+   "SSI",
+   "VND",
+   "VCI",
+   "HCM",
+   "FTS",
+   "BSI",
+   "CTS",
+   "VIX",
+   "SHS",
+   "MBS"
+  ]
+ },
+ {
+  "id": "thep",
+  "name": "Thép",
+  "tickers": [
+   "HPG",
+   "HSG",
+   "NKG",
+   "TLH",
+   "SMC",
+   "POM",
+   "VGS",
+   "TVN",
+   "HMC",
+   "TIS"
+  ]
+ },
+ {
+  "id": "cong-nghe",
+  "name": "Công nghệ",
+  "tickers": [
+   "FPT",
+   "CMG",
+   "CTR",
+   "VGI",
+   "FOX",
+   "ELC",
+   "ITD",
+   "SAM",
+   "ST8",
+   "TTN"
+  ]
+ },
+ {
+  "id": "ban-le",
+  "name": "Bán lẻ",
+  "tickers": [
+   "MWG",
+   "FRT",
+   "DGW",
+   "PNJ",
+   "PET",
+   "HAX",
+   "CTF",
+   "SVC",
+   "AST",
+   "VRE"
+  ]
+ },
+ {
+  "id": "fnb",
+  "name": "F&B",
+  "tickers": [
+   "VNM",
+   "MSN",
+   "MCH",
+   "QNS",
+   "SAB",
+   "KDC",
+   "SBT",
+   "DBC",
+   "BAF",
+   "MML"
+  ]
+ },
+ {
+  "id": "dau-khi",
+  "name": "Dầu khí",
+  "tickers": [
+   "GAS",
+   "PLX",
+   "PVS",
+   "PVD",
+   "BSR",
+   "OIL",
+   "PVT",
+   "PVC",
+   "PVB",
+   "CNG"
+  ]
+ },
+ {
+  "id": "dien",
+  "name": "Điện",
+  "tickers": [
+   "POW",
+   "REE",
+   "GEG",
+   "PC1",
+   "NT2",
+   "QTP",
+   "GEX",
+   "VSH",
+   "TV2",
+   "HND"
+  ]
+ },
+ {
+  "id": "hoa-chat",
+  "name": "Hóa chất",
+  "tickers": [
+   "DGC",
+   "DCM",
+   "DPM",
+   "CSV",
+   "LAS",
+   "BFC",
+   "DDV",
+   "PLC",
+   "HVT",
+   "SFG"
+  ]
+ },
+ {
+  "id": "vlxd",
+  "name": "Vật liệu xây dựng",
+  "tickers": [
+   "BMP",
+   "NTP",
+   "VCS",
+   "HT1",
+   "PTB",
+   "VGC",
+   "DHA",
+   "KSB",
+   "BTS",
+   "CVT"
+  ]
+ },
+ {
+  "id": "xay-dung",
+  "name": "Xây dựng",
+  "tickers": [
+   "CTD",
+   "HBC",
+   "VCG",
+   "FCN",
+   "CII",
+   "HHV",
+   "LCG",
+   "C4G",
+   "HDC",
+   "DPG"
+  ]
+ },
+ {
+  "id": "duoc",
+  "name": "Dược",
+  "tickers": [
+   "DHG",
+   "IMP",
+   "DBD",
+   "DHT",
+   "TRA",
+   "DMC",
+   "DCL",
+   "OPC",
+   "DVN",
+   "JVC"
+  ]
+ },
+ {
+  "id": "hang-khong",
+  "name": "Hàng không",
+  "tickers": [
+   "HVN",
+   "VJC",
+   "ACV",
+   "SCS",
+   "NCT",
+   "SAS",
+   "SGN",
+   "MAS",
+   "ARM",
+   "NAS"
+  ]
+ },
+ {
+  "id": "thuy-san",
+  "name": "Thủy sản",
+  "tickers": [
+   "VHC",
+   "ANV",
+   "IDI",
+   "FMC",
+   "MPC",
+   "ACL",
+   "CMX",
+   "ABT",
+   "AAM",
+   "ASM"
+  ]
+ },
+ {
+  "id": "logistic",
+  "name": "Logistics",
+  "tickers": [
+   "GMD",
+   "HAH",
+   "VSC",
+   "VTP",
+   "PHP",
+   "SGP",
+   "TMS",
+   "DVP",
+   "VOS",
+   "STG"
+  ]
+ },
+ {
+  "id": "cao-su",
+  "name": "Cao su",
+  "tickers": [
+   "GVR",
+   "PHR",
+   "DPR",
+   "DRI",
+   "TRC",
+   "TNC",
+   "HRC",
+   "DRC",
+   "CSM",
+   "SRC"
+  ]
+ },
+ {
+  "id": "det-may",
+  "name": "Dệt may",
+  "tickers": [
+   "TCM",
+   "TNG",
+   "MSH",
+   "VGT",
+   "STK",
+   "GIL",
+   "PPH",
+   "ADS",
+   "EVE",
+   "M10"
+  ]
+ },
+ {
+  "id": "khoang-san",
+  "name": "Khoáng sản",
+  "tickers": [
+   "KSV",
+   "MSR",
+   "BMC",
+   "HGM",
+   "MVB",
+   "TC6",
+   "THT",
+   "TDN",
+   "NBC",
+   "TVD"
+  ]
+ }
+]
