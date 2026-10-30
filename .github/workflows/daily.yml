@@ -1,0 +1,57 @@
+# Lịch chạy tự động (giờ Việt Nam = UTC+7)
+name: cap-nhat-du-lieu
+on:
+  schedule:
+    - cron: "0 1 * * 1-5"    # 08:00 VN — bản tin sáng (từ dữ liệu hôm trước)
+    - cron: "30 8 * * 1-5"   # 15:30 VN — cập nhật sau phiên + bản tin chiều
+    - cron: "0 3 * * 6"      # 10:00 VN thứ Bảy — nhận định cho tất cả mã
+    - cron: "0 2 25 1,4,7,10 *"  # ngày 25 tháng 1/4/7/10 — tải lại BCTC quý
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily | weekly | quarterly | morning"
+        default: daily
+
+permissions:
+  contents: write
+
+concurrency: { group: build, cancel-in-progress: false }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Cài thư viện
+        run: |
+          pip install -r requirements.txt
+          pip install -U --extra-index-url https://vnstocks.com/api/packages vnstock || pip install -U vnstock
+      - name: Chọn chế độ
+        id: m
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            case "${{ github.event.schedule }}" in
+              "0 1 * * 1-5") MODE=morning ;;
+              "0 3 * * 6") MODE=weekly ;;
+              "0 2 25 1,4,7,10 *") MODE=quarterly ;;
+              *) MODE=daily ;;
+            esac
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+      - name: Chạy
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ZALO_BOT_TOKEN: ${{ secrets.ZALO_BOT_TOKEN }}
+          DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
+        run: python src/build.py --mode ${{ steps.m.outputs.mode }}
+      - name: Lưu kết quả
+        run: |
+          git config user.name "bot-cap-nhat"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs data config/subscribers.json
+          git diff --cached --quiet || git commit -m "Cập nhật dữ liệu (${{ steps.m.outputs.mode }})"
+          git push
