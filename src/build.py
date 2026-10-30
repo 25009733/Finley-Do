@@ -56,6 +56,8 @@ def ratios_for(tk: str, bank: bool, refresh: bool) -> pd.DataFrame:
     if f.exists() and not refresh:
         return pd.read_json(f)
     df = ds.get_ratios(tk, bank)
+    if not ds.MOCK:
+        time.sleep(2.2)  # 2 lượt gọi BCTC, giữ dưới 60 lượt/phút
     df.to_json(f, orient="records", force_ascii=False)
     return df
 
@@ -187,7 +189,7 @@ def main():
             if b:
                 stocks[tk] = b
             if not ds.MOCK:
-                time.sleep(0.6)  # tránh bị nguồn dữ liệu chặn vì gọi quá nhanh
+                time.sleep(1.1)  # cấp Cộng đồng: tối đa 60 lượt gọi/phút
     # chỉ số thị trường
     indices = []
     for name in INDICES:
