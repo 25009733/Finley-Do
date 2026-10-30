@@ -68,6 +68,9 @@ def stock_block(tk: str, sec: dict, refresh_ratios: bool) -> dict | None:
     except Exception as e:  # noqa: BLE001
         print(f"[giá] {tk} lỗi: {e}")
         return None
+    if len(hist) < 60:
+        print(f"[giá] {tk} bỏ qua: chỉ có {len(hist)} phiên dữ liệu")
+        return None
     gaps = adjust.suspicious_gaps(hist)
     x = ind.compute(hist)
     t, y = x.iloc[-1], x.iloc[-2]
@@ -185,7 +188,11 @@ def main():
     stocks: dict[str, dict] = {}
     for sec in sectors:
         for tk in sec["tickers"]:
-            b = stock_block(tk, sec, refresh)
+            try:
+                b = stock_block(tk, sec, refresh)
+            except Exception as e:  # noqa: BLE001 — 1 mã lỗi không làm hỏng cả lượt chạy
+                print(f"[mã] {tk} lỗi: {e}")
+                b = None
             if b:
                 stocks[tk] = b
             if not ds.MOCK:
