@@ -96,7 +96,14 @@ def stock_block(tk: str, sec: dict, refresh_ratios: bool) -> dict | None:
     }
     for k in RATIO_KEYS:
         b[k] = r2(last.get(k))
-    if b.get("cap"):
+    sh = last.get("shares")
+    if sh and b["px"]:  # P/E, P/B, vốn hoá tính theo giá hôm nay
+        b["cap"] = r2(b["px"] * sh / 1e12, 0)  # nghìn tỷ
+        if b.get("eps") and b["eps"] > 0:
+            b["pe"] = r2(b["px"] / b["eps"], 1)
+        if b.get("bvps") and b["bvps"] > 0:
+            b["pb"] = r2(b["px"] / b["bvps"], 2)
+    elif b.get("cap"):
         b["cap"] = r2(b["cap"] / 1000, 0)  # tỷ -> nghìn tỷ
     # tăng trưởng lợi nhuận quý so cùng kỳ (quý hiện tại vs 4 quý trước)
     pr = b["hist"].get("profit", [])

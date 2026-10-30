@@ -102,58 +102,124 @@ def _mock_ratios(ticker: str, bank: bool) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------- REAL
-def _vn_stock(ticker: str):
-    """Trả về đối tượng cổ phiếu của vnstock, chịu được cả API cũ lẫn mới."""
-    import vnstock  # noqa: import trễ để MOCK không cần cài
+# ---------------------------------------------------------------- REAL (vnstock 5)
+# Bảng ratio() dựng sẵn của vnstock cần gói trả phí, nên hệ thống TỰ TÍNH
+# chỉ số từ báo cáo tài chính gốc (gói miễn phí) + giá thị trường.
+INDEX_NAMES = {"VNINDEX", "VN30", "HNXINDEX", "HNX30", "UPCOMINDEX"}
 
-    if hasattr(vnstock, "Vnstock"):
-        return vnstock.Vnstock().stock(symbol=ticker, source=SOURCE)
-    raise RuntimeError("Không tìm thấy lớp Vnstock — kiểm tra phiên bản vnstock (xem README).")
+
+def _market():
+    from vnstock import Market  # noqa: import trễ để MOCK không cần cài
+    return Market()
 
 
 def get_history(ticker: str, days: int = 420) -> pd.DataFrame:
-    """Giá ngày (OHLCV), đơn vị đồng, cũ → mới."""
+    """Giá ngày (OHLCV), cổ phiếu tính bằng đồng, chỉ số tính bằng điểm; cũ → mới."""
     if MOCK:
         return _mock_history(ticker, days)
-    st = _vn_stock(ticker)
+    m = _market()
+    obj = m.index(ticker) if ticker in INDEX_NAMES else m.equity(ticker)
     start = (date.today() - timedelta(days=int(days * 1.5))).isoformat()
-    df = st.quote.history(start=start, end=date.today().isoformat(), interval="1D")
+    df = obj.ohlcv(start=start, interval="1D")
     df = df.rename(columns=str.lower)[PRICE_COLS].copy()
-    df["time"] = pd.to_datetime(df["time"])
-    # vnstock (nguồn VCI) trả giá theo đơn vị nghìn đồng
-    if df["close"].median() < 1000:
-        df[["open", "high", "low", "close"]] *= 1000
+    t = pd.to_datetime(df["time"])
+    df["time"] = t.dt.tz_localize(None) if t.dt.tz is not None else t
+    if ticker not in INDEX_NAMES and df["close"].median() < 1000:
+        df[["open", "high", "low", "close"]] *= 1000  # nghìn đồng -> đồng
     return df.sort_values("time").tail(days).reset_index(drop=True)
 
 
-def _flatten(cols) -> list[str]:
-    out = []
-    for c in cols:
-        out.append(c[-1] if isinstance(c, tuple) else c)
-    return [str(c) for c in out]
+def _wide(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Bảng dạng dài (period, id, name, value) -> bảng rộng theo quý."""
+    df = df[df["period"].astype(str).str.contains("Q")]
+    w = df.pivot_table(index="period", columns="id", values="value", aggfunc="first").sort_index()
+    names = {i: str(n).strip().lower() for i, n in zip(df["id"], df["name"])}
+    return w, names
+
+
+def _pick(w: pd.DataFrame, names: dict, ids=(), keys=()):
+    """Tìm 1 dòng BCTC: theo mã id trước, rồi theo tên (khớp đúng > bắt đầu bằng > chứa)."""
+    for i in ids:
+        if i in w:
+            return w[i]
+    for mode in ("eq", "start", "in"):
+        for col in w.columns:
+            n = names.get(col, "")
+            for k in keys:
+                if (mode == "eq" and n == k) or (mode == "start" and n.startswith(k)) or (mode == "in" and k in n):
+                    return w[col]
+    return None
+
+
+def _div(a, b):
+    if a is None or b is None:
+        return None
+    return a / b.replace(0, np.nan)
 
 
 def get_ratios(ticker: str, bank: bool = False) -> pd.DataFrame:
-    """Chỉ số tài chính theo quý (12 quý gần nhất), tên cột đã chuẩn hoá."""
+    """Chỉ số tài chính theo quý, TỰ TÍNH từ BCTC (miễn phí). Thiếu dòng nào thì chỉ số đó để trống."""
     if MOCK:
         return _mock_ratios(ticker, bank)
-    st = _vn_stock(ticker)
-    raw = st.finance.ratio(period="quarter", lang="en", dropna=True)
-    raw.columns = _flatten(raw.columns)
-    out = pd.DataFrame()
-    yr = next((c for c in raw.columns if c.lower() in ("yearreport", "year")), None)
-    qr = next((c for c in raw.columns if c.lower() in ("lengthreport", "quarter")), None)
-    if yr and qr:
-        out["quarter"] = "Q" + raw[qr].astype(str) + "/" + raw[yr].astype(str).str[-2:]
-    for key, names in RATIO_ALIASES.items():
-        col = next((c for c in names if c in raw.columns), None)
-        if col is not None:
-            out[key] = pd.to_numeric(raw[col], errors="coerce")
-    # % trong vnstock thường là số thập phân (0.21) — đổi về % cho dễ đọc
-    for k in ("roe", "roa", "blng", "blnr", "ebitda", "nim", "npl", "llr", "ldr", "car", "casa"):
-        if k in out and out[k].abs().median() < 1.5:
-            out[k] *= 100
-    if "quarter" in out:
-        out = out.iloc[::-1] if out["quarter"].iloc[0] > out["quarter"].iloc[-1] else out
+    from vnstock import Fundamental
+
+    f = Fundamental().equity(ticker)
+    inc, n_inc = _wide(f.income_statement(period="quarter"))
+    bal, n_bal = _wide(f.balance_sheet(period="quarter"))
+    idx = inc.index.union(bal.index)
+    inc, bal = inc.reindex(idx), bal.reindex(idx)
+    if os.getenv("DUMP_IDS") == "1":  # in danh sách dòng BCTC để dò khi cần
+        print(ticker, "IS:", {k: n_inc[k] for k in list(inc.columns)[:60]})
+        print(ticker, "BS:", {k: n_bal[k] for k in list(bal.columns)[:60]})
+
+    rev = _pick(inc, n_inc, ("IS_NET_REVENUE",), ("doanh thu thuần", "thu nhập lãi thuần", "tổng thu nhập hoạt động"))
+    gross = _pick(inc, n_inc, ("IS_GROSS_PROFIT",), ("lợi nhuận gộp",))
+    np_ = _pick(inc, n_inc, ("IS_NET_PROFIT_PARENT", "IS_NET_PROFIT_AFTER_TAX"),
+                ("lợi nhuận sau thuế của cổ đông công ty mẹ", "lợi nhuận sau thuế thu nhập doanh nghiệp", "lợi nhuận sau thuế"))
+    assets = _pick(bal, n_bal, ("BS_TOTAL_ASSETS",), ("tổng cộng tài sản", "tổng tài sản"))
+    equity = _pick(bal, n_bal, ("BS_OWNERS_EQUITY", "BS_EQUITY"), ("vốn chủ sở hữu", "tổng vốn chủ sở hữu"))
+    liab = _pick(bal, n_bal, ("BS_TOTAL_LIABILITIES", "BS_LIABILITIES"), ("nợ phải trả", "tổng nợ phải trả"))
+    cur_a = _pick(bal, n_bal, ("BS_CURRENT_ASSETS",), ("tài sản ngắn hạn",))
+    cur_l = _pick(bal, n_bal, ("BS_CURRENT_LIABILITIES",), ("nợ ngắn hạn",))
+    inv = _pick(bal, n_bal, ("BS_INVENTORIES",), ("hàng tồn kho",))
+    cash = _pick(bal, n_bal, ("BS_CASH",), ("tiền và các khoản tương đương tiền", "tiền mặt"))
+    capital = _pick(bal, n_bal, ("BS_CHARTER_CAPITAL",), ("vốn góp của chủ sở hữu", "vốn điều lệ", "cổ phiếu phổ thông"))
+
+    out = pd.DataFrame(index=idx)
+    out["quarter"] = ["Q" + p.split("Q")[-1].strip("-") + "/" + p[2:4] for p in idx.astype(str)]
+    if rev is not None:
+        out["revenue"] = rev
+    if np_ is not None:
+        out["profit"] = np_
+    shares = None
+    if capital is not None:
+        scale = 1e9 if capital.dropna().median() < 1e7 else 1  # BCTC tính bằng tỷ đồng
+        shares = capital * scale / 10000  # mệnh giá 10.000đ
+        out["shares"] = shares
+        unit = scale
+    else:
+        unit = 1
+    ttm = np_.rolling(4, min_periods=1).mean() * 4 if np_ is not None else None  # lợi nhuận năm hoá
+    if ttm is not None and shares is not None:
+        out["eps"] = ttm * unit / shares
+    if equity is not None and shares is not None:
+        out["bvps"] = equity * unit / shares
+    out["roe"] = _div(ttm, equity) * 100 if ttm is not None and equity is not None else None
+    out["roa"] = _div(ttm, assets) * 100 if ttm is not None and assets is not None else None
+    if rev is not None:
+        if gross is not None:
+            out["blng"] = _div(gross, rev) * 100
+        if np_ is not None:
+            out["blnr"] = _div(np_, rev) * 100
+    if cur_a is not None and cur_l is not None:
+        out["tthh"] = _div(cur_a, cur_l)
+        if inv is not None:
+            out["ttn"] = _div(cur_a - inv, cur_l)
+        if cash is not None:
+            out["ttm"] = _div(cash, cur_l)
+    if liab is not None and equity is not None:
+        out["debt"] = _div(liab, equity)
+    if rev is not None and assets is not None:
+        out["vqtts"] = _div(rev.rolling(4, min_periods=1).mean() * 4, assets)
+    out = out.dropna(axis=1, how="all")
     return out.tail(12).reset_index(drop=True)
