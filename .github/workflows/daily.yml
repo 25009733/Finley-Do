@@ -52,6 +52,6 @@ jobs:
         run: |
           git config user.name "bot-cap-nhat"
           git config user.email "bot@users.noreply.github.com"
-          git add docs data config/subscribers.json
+          git add -A
           git diff --cached --quiet || git commit -m "Cập nhật dữ liệu (${{ steps.m.outputs.mode }})"
           git push
