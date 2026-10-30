@@ -54,6 +54,7 @@ jobs:
           DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
         run: python src/build.py --mode ${{ steps.m.outputs.mode }}
       - name: Lưu kết quả
+        if: always()
         run: |
           git config user.name "bot-cap-nhat"
           git config user.email "bot@users.noreply.github.com"
