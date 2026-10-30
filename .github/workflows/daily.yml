@@ -29,6 +29,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -U --extra-index-url https://vnstocks.com/api/packages vnstock || pip install -U vnstock
+      - name: Đăng nhập vnstock
+        env:
+          VNSTOCK_API_KEY: ${{ secrets.VNSTOCK_API_KEY }}
+        run: |
+          if [ -n "$VNSTOCK_API_KEY" ]; then printf '%s' "$VNSTOCK_API_KEY" | vnstock register --stdin; else echo "Chưa có VNSTOCK_API_KEY"; fi
       - name: Chọn chế độ
         id: m
         run: |
